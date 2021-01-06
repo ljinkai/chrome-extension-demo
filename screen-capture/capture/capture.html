@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>网页截图编辑</title>
+    <style>
+        body {
+            padding: 100px 0px 0px 0px;
+        }
+        .nav {
+            position: fixed;
+            top: 0px;
+            width: 100%;
+            text-align: right;
+        }
+        .nav-download {
+            border: none;
+            padding: 6px 15px;
+            margin-right: 20px;
+            background-color: #4e6ef2;
+            color: white;
+            border-radius: 3px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        #screenCaptureImg {
+            display:block;
+            width: 50%;
+            margin: 0px auto;
+        }
+    </style>
+</head>
+<div class="nav">
+    <button class="nav-download" id="downloadFile">下载图片</button>
+</div>
+<img id="screenCaptureImg" src=""/>
+
+<script src="capture.js"></script>
+</body>
+</html>
