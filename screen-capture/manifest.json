@@ -1,13 +1,13 @@
 {
   "name": "一键生成网页截图",
   "version": "1.0.0",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "description": "将当前浏览的网页一键保存为图片",
-  "browser_action": {
+  "action": {
     "default_icon": "img/icon.png",
     "default_popup": "popup.html"
   },
-  "permissions": [ "activeTab", "storage", "unlimitedStorage" ],
+  "permissions": [ "tabs", "activeTab", "scripting", "storage", "unlimitedStorage" ],
   "icons": {
     "16": "img/icon16.png",
     "48": "img/icon48.png",

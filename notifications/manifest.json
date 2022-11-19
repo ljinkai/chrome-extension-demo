@@ -1,16 +1,16 @@
 {
   "name": "消息通知",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "version": "1.0.0",
   "description":
     "定时显示消息通知",
   "icons": {"16": "img/icon_16.png", "48": "img/icon_48.png", "128": "img/icon_128.png"},
   "permissions": [
-    "notifications"
+    "notifications",
+    "storage"
   ],
   "options_page": "options.html",
-  "background": { "scripts": ["background.js"] },
-  "web_accessible_resources": [
-    "img/icon_48.png"
-  ]
+  "background": {
+    "service_worker": "background.js"
+  }
 }

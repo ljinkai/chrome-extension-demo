@@ -1,19 +1,16 @@
+<script setup>
+// This starter template is using Vue 3 <script setup> SFCs
+// Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
+import Page from './components/Page.vue'
+</script>
+
+
 <template>
   <div id="app">
     <Page msg="Welcome to Your Vue.js App"/>
   </div>
 </template>
 
-<script>
-import Page from './components/Page.vue'
-
-export default {
-  name: 'App',
-  components: {
-    Page
-  }
-}
-</script>
 
 <style>
 /* http://meyerweb.com/eric/tools/css/reset/ 

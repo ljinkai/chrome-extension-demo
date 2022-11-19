@@ -2,10 +2,10 @@
   <div v-bind:style="styeImg">
     <div class="page-widget">
       <div class="poem-content">
+
         <div>{{this.poemData.content}}</div>
         <div class="poem-content-sub">《{{this.poemData.origin}}》{{this.poemData.author}}</div> 
         <p class="page-date">{{weekDay}}</p>
-        <p>hot refresh local:8080</p>
       </div>
     </div>
     <div class="page-author"><a href="http://liujinkai.com">by liujinkai.com</a></div>

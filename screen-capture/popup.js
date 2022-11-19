@@ -58,25 +58,30 @@ var screenshot, contentURL = '';
  * 发送消息通知事件：scrollPage
  */
 function sendScrollMessage(tab) {
-    contentURL = tab.url;
-    screenshot = {};
-    chrome.tabs.sendRequest(tab.id, {msg: 'scrollPage'}, function() {
-        // 截取页面后的回调函数
-        openPage();
+    chrome.tabs.sendMessage(tab.id, {msg: 'scrollPage'}, function() {
+        // 发送后的回调函数
+        console.log("after scrollPage:")
     });
 }
 
 function sendLogMessage(data) {
-    chrome.tabs.getSelected(null, function(tab) {
-        chrome.tabs.sendRequest(tab.id, {msg: 'logMessage', data: data}, function() {});
+    let queryOptions = { active: true};
+    chrome.tabs.query(queryOptions, function(tabs) {
+        let tab = tabs[0]
+        chrome.tabs.sendMessage(tab.id, {msg: 'logMessage', data: data}, function() {
+        });
     });
 }
 /**
  * 监听来自page.js的消息通知事件：capturePage
  */
-chrome.extension.onRequest.addListener(function(request, sender, callback) {
+ chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
     if (request.msg === 'capturePage') {
-        capturePage(request, sender, callback);
+        capturePage(request, sender);
+        sendResponse(true)
+    } else if (request.msg === 'capturePageComplete') {
+        openPage()
+        sendResponse()
     } else {
         console.error('Unknown message received from content script: ' + request.msg);
     }
@@ -84,49 +89,56 @@ chrome.extension.onRequest.addListener(function(request, sender, callback) {
 /**
  * 在popup.html里显示截取页面的进度
  */
-function capturePage(data, sender, callback) {
-    var canvas;
-
-    $('bar').style.width = parseInt(data.complete * 100, 10) + '%';
-
-    // 获取网页的缩放比例
-    var scale = data.devicePixelRatio && data.devicePixelRatio !== 1 ?
-        1 / data.devicePixelRatio : 1;
-
-    // 将缩放比例考虑进去，以正常尺寸来截取，这个数据会应用到canvas生成的图片
-    if (scale !== 1) {
-        data.x = data.x / scale;
-        data.y = data.y / scale;
-        data.totalWidth = data.totalWidth / scale;
-        data.totalHeight = data.totalHeight / scale;
-    }
-
-
-    if (!screenshot.canvas) {
-        canvas = document.createElement('canvas');
-        canvas.width = data.totalWidth;
-        canvas.height = data.totalHeight;
-        screenshot.canvas = canvas;
-        screenshot.ctx = canvas.getContext('2d');
-    }
-
-    /**
-     * 重要
-     * API: https://developer.chrome.com/docs/extensions/reference/tabs/#method-captureVisibleTab
-     * chrome.tabs.captureVisibleTab(windowId?: number, options?: extensionTypes.ImageDetails, callback: function)
-     */
-    chrome.tabs.captureVisibleTab(
-        null, {format: 'png', quality: 100}, function(dataURI) {
-            if (dataURI) {
-                var image = new Image();
-                image.onload = function() {
-                    sendLogMessage('img dims: ' + image.width + ', ' + image.height);
-                    screenshot.ctx.drawImage(image, data.x, data.y);// 将当前片段图片放到相应位置
-                    callback(true);
-                };
-                image.src = dataURI;
-            }
-        });
+ async function capturePage(data, sender, sendResponse) {
+        var canvas;
+    
+        $('bar').style.width = parseInt(data.complete * 100, 10) + '%';
+    
+        // 获取网页的缩放比例
+        var scale = data.devicePixelRatio && data.devicePixelRatio !== 1 ?
+            1 / data.devicePixelRatio : 1;
+    
+        // 将缩放比例考虑进去，以正常尺寸来截取，这个数据会应用到canvas生成的图片
+        if (scale !== 1) {
+            data.x = data.x / scale;
+            data.y = data.y / scale;
+            data.totalWidth = data.totalWidth / scale;
+            data.totalHeight = data.totalHeight / scale;
+        }
+    
+    
+        if (!screenshot.canvas) {
+            canvas = document.createElement('canvas');
+            canvas.width = data.totalWidth;
+            canvas.height = data.totalHeight;
+            screenshot.canvas = canvas;
+            screenshot.ctx = canvas.getContext('2d');
+        }
+    
+        /**
+         * 重要
+         * API: https://developer.chrome.com/docs/extensions/reference/tabs/#method-captureVisibleTab
+         * chrome.tabs.captureVisibleTab(windowId?: number, options?: extensionTypes.ImageDetails, callback: function)
+         */
+        chrome.tabs.captureVisibleTab(
+            null, {format: 'png', quality: 100}, function(dataURI) {
+                if (dataURI) {
+                    var image = new Image();
+                    image.onload = function() {
+                        sendLogMessage('img dims: ' + image.width + ', ' + image.height);
+                        screenshot.ctx.drawImage(image, data.x, data.y);// 将当前片段图片放到相应位置
+                        setTimeout(() => {
+                            let queryOptions = { active: true, lastFocusedWindow: true };
+                            chrome.tabs.query(queryOptions, function(tabs) {
+                                let tab = tabs[0]
+                                sendScrollMessage(tab);
+                            });
+                        }, 1500)
+                        
+                    };
+                    image.src = dataURI;
+                }
+            });
 }
 /**
  * 图片截取成功后，打开新的tab页面
@@ -157,7 +169,7 @@ function openPage() {
 
         chrome.storage.local.set({'screencaptureimg': dataURI, 'name': name}, function() {
             // 打开图片的下载管理页面
-            chrome.tabs.create({'url': chrome.extension.getURL('capture/capture.html')}, function(tab) {
+            chrome.tabs.create({'url': chrome.runtime.getURL('capture/capture.html')}, function(tab) {
                 console.log("after created")
             });
         });
@@ -169,10 +181,14 @@ function openPage() {
 /**
  * popup.js的入口方法，打开popup.html后，立即执行，向网页页面执行page.js的执行
  */
-chrome.tabs.getSelected(null, function(tab) {
+ let queryOptions = { active: true, lastFocusedWindow: true };
+ chrome.tabs.query(queryOptions, function(tabs) {
+    let tab = tabs[0]
+    contentURL = tab.url;
+    screenshot = {};
     if (testURLMatches(tab.url)) {
         let loaded = false;
-        chrome.tabs.executeScript(tab.id, {file: 'page.js'}, function() {
+        chrome.scripting.executeScript({target: {tabId: tab.id} , files: ['page.js'],}, function() {
             loaded = true;
             show('loading'); // 加载loading提示
             sendScrollMessage(tab); // 发送消息通知
