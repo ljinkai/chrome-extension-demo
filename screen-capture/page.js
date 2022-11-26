@@ -9,17 +9,16 @@ var initFlag = false;
  */
 function onMessage(request, sender, callback) {
     if (request.msg === 'scrollPage') {
-        if (!initFlag) {
+        if (!initFlag) { // 第一次整理页面位置信息
             getPositions();
         } else {
             num++;
         }
-        setTimeout(() => {
-            processArrangements()
-        }, 200)
+        processArrangements()
         callback()
     } else if (request.msg == 'logMessage') {
         console.log('[POPUP LOG]', request.data);
+        callback()
     } else {
         console.error('Unknown message received from background: ' + request.msg);
     }
@@ -64,7 +63,7 @@ function max(nums) {
  arrangements = [],
  // 设置滚动的区域
  scrollPad = windowHeight,
- yDelta = windowHeight - (windowHeight > scrollPad ? scrollPad : 0),
+ yDelta = windowHeight - (windowHeight > scrollPad ? scrollPad : 0), // 可见窗口高度
  xDelta = windowWidth,
  yPos = fullHeight - windowHeight,
  xPos,
@@ -87,14 +86,17 @@ function getPositions() {
     initFlag = true
 }
 /**
-     * 重置页面为初始状态
-     */
+ * 重置页面为初始状态
+ */
  function cleanUp() {
     document.documentElement.style.overflow = originalOverflowStyle;
     window.scrollTo(originalX, originalY);
     num = 1;
     initFlag = false;
 }
+/**
+ * 得到当前可视窗口页面的坐标、进度、像素大小的比率等信息
+ */
 function processArrangements() {
     if (arrangements.length == 0) {// 页面滚动是完成则重置页面状态
         chrome.runtime.sendMessage({msg: 'capturePageComplete'})
@@ -115,10 +117,12 @@ function processArrangements() {
         complete: (numArrangements-arrangements.length)/numArrangements,
         totalWidth: fullWidth,
         totalHeight: fullHeight,
-        devicePixelRatio: window.devicePixelRatio
+        devicePixelRatio: window.devicePixelRatio //当前显示设备的物理像素分辨率与CSS 像素分辨率之比
     };
 
-    // 将滚动后获取的网页的可视位置坐标数据发送消息给popup.js
-    chrome.runtime.sendMessage(data, function(captured) {
-    });
+    setTimeout(() => {
+        // 将滚动后获取的网页的可视位置坐标数据发送消息给popup.js
+        chrome.runtime.sendMessage(data);
+    }, 550)
+    
 };

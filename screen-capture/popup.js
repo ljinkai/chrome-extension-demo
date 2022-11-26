@@ -1,3 +1,4 @@
+// 工具类方法，在弹出层里添加显示内容
 var log = (function() {
     var parElt = document.getElementById('wrap'),
         logElt = document.createElement('div');
@@ -60,7 +61,7 @@ var screenshot, contentURL = '';
 function sendScrollMessage(tab) {
     chrome.tabs.sendMessage(tab.id, {msg: 'scrollPage'}, function() {
         // 发送后的回调函数
-        console.log("after scrollPage:")
+        console.log("after send scrollPage message")
     });
 }
 
@@ -75,13 +76,11 @@ function sendLogMessage(data) {
 /**
  * 监听来自page.js的消息通知事件：capturePage
  */
- chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
+ chrome.runtime.onMessage.addListener(async function(request, sender) {
     if (request.msg === 'capturePage') {
-        capturePage(request, sender);
-        sendResponse(true)
+        await capturePage(request, sender);
     } else if (request.msg === 'capturePageComplete') {
         openPage()
-        sendResponse()
     } else {
         console.error('Unknown message received from content script: ' + request.msg);
     }
@@ -90,11 +89,10 @@ function sendLogMessage(data) {
  * 在popup.html里显示截取页面的进度
  */
  async function capturePage(data, sender, sendResponse) {
+    return new Promise((resolve, reject) => {
         var canvas;
-    
         $('bar').style.width = parseInt(data.complete * 100, 10) + '%';
-    
-        // 获取网页的缩放比例
+        // 使用多少屏幕实际像素来绘制单个 CSS 像素。
         var scale = data.devicePixelRatio && data.devicePixelRatio !== 1 ?
             1 / data.devicePixelRatio : 1;
     
@@ -105,7 +103,6 @@ function sendLogMessage(data) {
             data.totalWidth = data.totalWidth / scale;
             data.totalHeight = data.totalHeight / scale;
         }
-    
     
         if (!screenshot.canvas) {
             canvas = document.createElement('canvas');
@@ -125,20 +122,19 @@ function sendLogMessage(data) {
                 if (dataURI) {
                     var image = new Image();
                     image.onload = function() {
-                        sendLogMessage('img dims: ' + image.width + ', ' + image.height);
+                        sendLogMessage('draw img postions: ' + data.x + ', ' + data.y);
                         screenshot.ctx.drawImage(image, data.x, data.y);// 将当前片段图片放到相应位置
-                        setTimeout(() => {
                             let queryOptions = { active: true, lastFocusedWindow: true };
                             chrome.tabs.query(queryOptions, function(tabs) {
                                 let tab = tabs[0]
                                 sendScrollMessage(tab);
+                                resolve(); 
                             });
-                        }, 1500)
-                        
                     };
                     image.src = dataURI;
                 }
             });
+    });
 }
 /**
  * 图片截取成功后，打开新的tab页面
@@ -174,7 +170,6 @@ function openPage() {
             });
         });
     }
-
     onwriteend()
 }
 

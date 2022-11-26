@@ -6,6 +6,7 @@
         <div>{{this.poemData.content}}</div>
         <div class="poem-content-sub">《{{this.poemData.origin}}》{{this.poemData.author}}</div> 
         <p class="page-date">{{weekDay}}</p>
+        <p class="page-date">热更新 开发模式</p>
       </div>
     </div>
     <div class="page-author"><a href="http://liujinkai.com">by liujinkai.com</a></div>
